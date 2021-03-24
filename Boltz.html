@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Boltzmann kinetics | plots</title>
+  <script src="https://unpkg.com/mathjs@8.1.1/lib/browser/math.js"></script>
+
+  <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+
+  <style>
+    input[type=text] {
+      width: 300px;
+    }
+    input {
+      padding: 6px;
+    }
+    body, html, input {
+      font-family: sans-serif;
+      font-size: 11pt;
+
+    }
+    form {
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+
+<h1>TADF kinetics</h1>
+
+<img src="boltz.jpg" alt="boltz" style="width:300px;height:200px;">
+
+<form id="form">
+  <label for="eq">E<sub>1</sub> (meV) = </label>
+  <input type="number" id="e1" name="e1" step="0.01" value=1>
+  <label for="eq">E<sub>2</sub> (meV) = </label>
+  <input type="number" id="e2" name="e2" step="0.01" value=10>
+  <label for="eq">E<sub>3</sub> (meV) = </label>
+  <input type="number" id="e3" name="e3" step="0.01" value=100><br><br>
+  <label for="eq">&tau; (T<sup>I</sup>) (&mu;s) = </label>
+  <input type="number" id="t1" name="t1" step="0.000001" value=100>
+  <label for="eq">&tau; (T<sup>II</sup>) (&mu;s) = </label>
+  <input type="number" id="t2" name="t2" step="0.000001" value=10>
+  <label for="eq">&tau; (T<sup>III</sup>) (&mu;s) = </label>
+  <input type="number" id="t3" name="t3" step="0.000001" value=1>
+  <label for="eq">&tau; (S<sub>1</sub>) (&mu;s) = </label>
+  <input type="number" id="t4" name="t4" step="0.000001" value=0.1><br><br>
+  <input type="submit" value="Plot" />
+</form>
+
+<button onclick="download_csv()">Download Data</button>
+
+
+
+<div id="plot"></div>
+<div class="container" style="display: flex;">
+    <div id="plot3" style="width: 50%;">
+    </div>
+    <div id="plot2" style="width: 50%;">
+    </div>
+</div>
+
+
+
+<script>
+  function draw() {
+    try {
+      // compile the expression once
+      const e1 = document.getElementById('e1').value * 0.001
+      const e2 = document.getElementById('e2').value * 0.001
+      const e3 = document.getElementById('e3').value * 0.001
+      const t1 = document.getElementById('t1').value * 0.000001
+      const t2 = document.getElementById('t2').value * 0.000001
+      const t3 = document.getElementById('t3').value * 0.000001
+      const t4 = document.getElementById('t4').value * 0.000001
+      const kb = 0.00008617
+      const expressionN = "((1 + (exp(" + (-e1 / kb) + "/x)) + (exp(" + (-e2 / kb) + "/x)) + (exp(" + (-e3 /kb) + "/x))))"
+      const expressionD = "/((" + (1/t1) + "+ (" + (1/t2) + "*exp(" + (-e1 /kb) + "/x)) + (" + (1/t3) + "*exp(" + (-e2 /kb) + "/x)) + (" + (1/t4) + "*exp(" + (-e3 /kb) + "/x))))"
+      const expression = expressionN + expressionD
+      const expr = math.compile(expression)
+      const expression1 = "100/"+ expressionN
+      const expr1 = math.compile(expression1)
+      const expression2 = "100(exp(" + (-e1 / kb) + "/x))/"+ expressionN
+      const expr2 = math.compile(expression2)
+      const expression3 = "100(exp(" + (-e2 / kb) + "/x))/"+ expressionN
+      const expr3 = math.compile(expression3)
+      const expression4 = "100(exp(" + (-e3 / kb) + "/x))/"+ expressionN
+      const expr4 = math.compile(expression4)
+      const expression5 = "((" + expression1 + ")*" + (1/t1) + ")/(1/(" + expression + "))"
+      const expr5 = math.compile(expression5)
+      const expression6 = "((" + expression2 + ")*" + (1/t2) + ")/(1/(" + expression + "))"
+      const expr6 = math.compile(expression6)
+      const expression7 = "((" + expression3 + ")*" + (1/t3) + ")/(1/(" + expression + "))"
+      const expr7 = math.compile(expression7)
+      const expression8 = "((" + expression4 + ")*" + (1/t4) + ")/(1/(" + expression + "))"
+      const expr8 = math.compile(expression8)
+      console.log(e1)
+
+      // evaluate the expression repeatedly for different values of x
+      const xValues = math.range(0, 320, 1).toArray()
+      const yValues = xValues.map(function (x) {
+        return expr.evaluate({x: x})
+      })
+
+      const y1Values = xValues.map(function (x) {
+        return expr1.evaluate({x: x})
+      })
+      const y2Values = xValues.map(function (x) {
+        return expr2.evaluate({x: x})
+      })
+      const y3Values = xValues.map(function (x) {
+        return expr3.evaluate({x: x})
+      })
+      const y4Values = xValues.map(function (x) {
+        return expr4.evaluate({x: x})
+      })
+
+
+      const y5Values = xValues.map(function (x) {
+        return expr5.evaluate({x: x})
+      })
+      const y6Values = xValues.map(function (x) {
+        return expr6.evaluate({x: x})
+      })
+      const y7Values = xValues.map(function (x) {
+        return expr7.evaluate({x: x})
+      })
+      const y8Values = xValues.map(function (x) {
+        return expr8.evaluate({x: x})
+      })
+
+      // render the plot using plotly
+      const trace1 = {
+        x: xValues,
+        y: yValues,
+        type: 'scatter'
+      }
+      const data = [trace1]
+      let layout = {
+        xaxis: {
+          automargin: true,
+          title: {
+            text: "T (K)",
+            standoff: 20
+          }
+        },
+        yaxis: {
+          automargin: true,
+          title: {
+            text: 'lifetime (s)',
+            standoff: 20
+          }
+        }
+      }
+      Plotly.newPlot('plot', data, layout)
+
+      const trace2 = {
+        x: xValues,
+        y: y1Values,
+        name: 'T<sup>I</sup>',
+        type: 'scatter'
+      }
+      const trace3 = {
+        x: xValues,
+        y: y2Values,
+        name: 'T<sup>II</sup>',
+        type: 'scatter'
+      }
+      const trace4 = {
+        x: xValues,
+        y: y3Values,
+        name: 'T<sup>III</sup>',
+        type: 'scatter'
+      }
+      const trace5 = {
+        x: xValues,
+        y: y4Values,
+        name: 'S<sub>1</sub>',
+        type: 'scatter'
+      }
+      const data1 = [trace2, trace3, trace4, trace5]
+      let layout1 = {
+        xaxis: {
+          automargin: true,
+          title: {
+            text: "T (K)",
+            standoff: 20
+          }
+        },
+        yaxis: {
+          automargin: true,
+          title: {
+            text: "% Occupancy",
+            standoff: 20
+          }
+        }
+      }
+      Plotly.newPlot('plot2', data1, layout1)
+
+      const trace6 = {
+        x: xValues,
+        y: y5Values,
+        name: 'T<sup>I</sup>',
+        type: 'scatter'
+      }
+      const trace7 = {
+        x: xValues,
+        y: y6Values,
+        name: 'T<sup>II</sup>',
+        type: 'scatter'
+      }
+      const trace8 = {
+        x: xValues,
+        y: y7Values,
+        name: 'T<sup>III</sup>',
+        type: 'scatter'
+      }
+      const trace9 = {
+        x: xValues,
+        y: y8Values,
+        name: 'S<sub>1</sub>',
+        type: 'scatter'
+      }
+      const data2 = [trace6, trace7, trace8, trace9]
+      let layout2 = {
+        xaxis: {
+          automargin: true,
+          title: {
+            text: "T (K)",
+            standoff: 20
+          }
+        },
+        yaxis: {
+          automargin: true,
+          title: {
+            text: "% Contribution",
+            standoff: 20
+          }
+        }
+      }
+      Plotly.newPlot('plot3', data2, layout2)
+
+      rows1 = [xValues, yValues]
+      function transpose(matrix) {
+          return matrix[0].map((col, i) => matrix.map(row => row[i]));
+      }
+      rows = transpose(rows1)
+
+
+
+
+    }
+    catch (err) {
+      console.error(err)
+      alert(err)
+    }
+  }
+
+  document.getElementById('form').onsubmit = function (event) {
+    event.preventDefault()
+    draw()
+  }
+
+  draw()
+  function download_csv() {
+      let csvContent = "data:text/csv;charset=utf-8,"
+        + rows.map(e => e.join(",")).join("\n")
+      console.log(csvContent);
+      var hiddenElement = document.createElement('a')
+      hiddenElement.href = encodeURI(csvContent)
+      hiddenElement.target = '_blank'
+      hiddenElement.download = 'lifetime_v_T.csv'
+      hiddenElement.click()
+  }
+
+</script>
+
+</body>
+</html>
